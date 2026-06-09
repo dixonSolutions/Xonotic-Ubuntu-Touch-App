@@ -6,7 +6,8 @@
     "hooks": {
         "xonotic": {
             "apparmor": "xonotic.apparmor",
-            "desktop": "xonotic.desktop"
+            "desktop": "xonotic.desktop",
+            "orientation": ["landscape"]
         }
     },
     "version": "1.0.0",

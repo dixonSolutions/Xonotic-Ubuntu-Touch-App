@@ -1,50 +1,306 @@
 import QtQuick 2.12
+import QtQuick.Window 2.2
 import Ubuntu.Components 1.3
 import xonotic 1.0
 
 MainView {
     id: root
     applicationName: "xonotic.ratrad"
-    width: units.gu(45)
-    height: units.gu(75)
+    width: Screen.width
+    height: Screen.height
+    anchorToKeyboard: false
 
-    Launcher {
-        id: gameLauncher
-    }
+    OrientationHelper {
+        automaticOrientationAngle: false
+        orientationAngle: Orientation.Landscape
 
-    Page {
-        anchors.fill: parent
+        Item {
+            id: gameRoot
+            anchors.fill: parent
 
-        header: PageHeader {
-            title: i18n.tr("Xonotic")
-        }
+            property int hudHp: 100
+            property int hudAmmo: 50
+            property int hudScore: 0
 
-        Column {
-            anchors.centerIn: parent
-            width: parent.width - units.gu(4)
-            spacing: units.gu(2)
-
-            Label {
-                width: parent.width
-                horizontalAlignment: Text.AlignHCenter
-                wrapMode: Text.WordWrap
-                text: i18n.tr("Launch the bundled Xonotic client.")
+            Connections {
+                target: Launcher
+                onHpChanged: gameRoot.hudHp = hp
+                onAmmoChanged: gameRoot.hudAmmo = ammo
             }
 
-            Button {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: i18n.tr("Play")
-                color: UbuntuColors.warmGrey
-                onClicked: {
-                    if (!gameLauncher.launch()) {
-                        notification.show(i18n.tr("Could not start Xonotic."))
+            // ─── LOOK ZONE ────────────────────────────────────────────────
+            MouseArea {
+                id: lookZone
+                anchors.fill: parent
+                z: 0
+
+                property real lastX: 0
+                property real lastY: 0
+
+                onPressed: {
+                    lastX = mouse.x
+                    lastY = mouse.y
+                }
+                onPositionChanged: {
+                    var dx = mouse.x - lastX
+                    var dy = mouse.y - lastY
+                    lastX = mouse.x
+                    lastY = mouse.y
+                    Launcher.sendLook(dx, dy)
+                }
+                onDoubleClicked: Launcher.shoot()
+            }
+
+            // ─── CROSSHAIR ────────────────────────────────────────────────
+            Item {
+                anchors.centerIn: parent
+                z: 5
+                width: 32
+                height: 32
+                enabled: false
+
+                Rectangle {
+                    width: 24; height: 2
+                    color: Qt.rgba(1, 1, 1, 0.8)
+                    anchors.centerIn: parent
+                }
+                Rectangle {
+                    width: 2; height: 24
+                    color: Qt.rgba(1, 1, 1, 0.8)
+                    anchors.centerIn: parent
+                }
+                Rectangle {
+                    width: 12; height: 12; radius: 6
+                    color: "transparent"
+                    border.color: Qt.rgba(1, 1, 1, 0.6)
+                    border.width: 1
+                    anchors.centerIn: parent
+                }
+            }
+
+            // ─── DPAD ─────────────────────────────────────────────────────
+            Item {
+                id: dpad
+                width: 140; height: 140
+                anchors.bottom: parent.bottom
+                anchors.left: parent.left
+                anchors.margins: 18
+                z: 20
+
+                property bool btnUpPressed: false
+                property bool btnDownPressed: false
+                property bool btnLeftPressed: false
+                property bool btnRightPressed: false
+
+                Rectangle {
+                    anchors.fill: parent; radius: 70
+                    color: Qt.rgba(1, 1, 1, 0.07)
+                    border.color: Qt.rgba(1, 1, 1, 0.18)
+                    border.width: 0.5
+                }
+
+                // Up
+                Rectangle {
+                    width: 40; height: 40; radius: 20
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.top: parent.top; anchors.topMargin: 4
+                    color: dpad.btnUpPressed ? Qt.rgba(1, 1, 1, 0.25) : Qt.rgba(1, 1, 1, 0.10)
+                    border.color: Qt.rgba(1, 1, 1, 0.22); border.width: 0.5
+                    Rectangle {
+                        width: parent.width * 0.7; height: 1
+                        color: Qt.rgba(1, 1, 1, 0.3)
+                        anchors.top: parent.top; anchors.topMargin: 3
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        radius: 1
+                    }
+                    Text { text: "▲"; color: Qt.rgba(1, 1, 1, 0.8); font.pixelSize: 13; anchors.centerIn: parent }
+                }
+
+                // Down
+                Rectangle {
+                    width: 40; height: 40; radius: 20
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.bottom: parent.bottom; anchors.bottomMargin: 4
+                    color: dpad.btnDownPressed ? Qt.rgba(1, 1, 1, 0.25) : Qt.rgba(1, 1, 1, 0.10)
+                    border.color: Qt.rgba(1, 1, 1, 0.22); border.width: 0.5
+                    Rectangle {
+                        width: parent.width * 0.7; height: 1
+                        color: Qt.rgba(1, 1, 1, 0.3)
+                        anchors.top: parent.top; anchors.topMargin: 3
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        radius: 1
+                    }
+                    Text { text: "▼"; color: Qt.rgba(1, 1, 1, 0.8); font.pixelSize: 13; anchors.centerIn: parent }
+                }
+
+                // Left
+                Rectangle {
+                    width: 40; height: 40; radius: 20
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.left: parent.left; anchors.leftMargin: 4
+                    color: dpad.btnLeftPressed ? Qt.rgba(1, 1, 1, 0.25) : Qt.rgba(1, 1, 1, 0.10)
+                    border.color: Qt.rgba(1, 1, 1, 0.22); border.width: 0.5
+                    Rectangle {
+                        width: parent.width * 0.7; height: 1
+                        color: Qt.rgba(1, 1, 1, 0.3)
+                        anchors.top: parent.top; anchors.topMargin: 3
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        radius: 1
+                    }
+                    Text { text: "◀"; color: Qt.rgba(1, 1, 1, 0.8); font.pixelSize: 13; anchors.centerIn: parent }
+                }
+
+                // Right
+                Rectangle {
+                    width: 40; height: 40; radius: 20
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.right: parent.right; anchors.rightMargin: 4
+                    color: dpad.btnRightPressed ? Qt.rgba(1, 1, 1, 0.25) : Qt.rgba(1, 1, 1, 0.10)
+                    border.color: Qt.rgba(1, 1, 1, 0.22); border.width: 0.5
+                    Rectangle {
+                        width: parent.width * 0.7; height: 1
+                        color: Qt.rgba(1, 1, 1, 0.3)
+                        anchors.top: parent.top; anchors.topMargin: 3
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        radius: 1
+                    }
+                    Text { text: "▶"; color: Qt.rgba(1, 1, 1, 0.8); font.pixelSize: 13; anchors.centerIn: parent }
+                }
+
+                Rectangle {
+                    width: 14; height: 14; radius: 7
+                    anchors.centerIn: parent
+                    color: Qt.rgba(1, 1, 1, 0.15)
+                    border.color: Qt.rgba(1, 1, 1, 0.2)
+                    border.width: 0.5
+                }
+
+                MultiPointTouchArea {
+                    anchors.fill: parent
+                    minimumTouchPoints: 0
+                    maximumTouchPoints: 1
+
+                    function processTouch(points) {
+                        if (points.length === 0) {
+                            dpad.btnUpPressed    = false
+                            dpad.btnDownPressed  = false
+                            dpad.btnLeftPressed  = false
+                            dpad.btnRightPressed = false
+                            Launcher.setMove(false, false, false, false)
+                            return
+                        }
+                        var pt  = points[0]
+                        var cx  = dpad.width  / 2
+                        var cy  = dpad.height / 2
+                        var dx  = pt.x - cx
+                        var dy  = pt.y - cy
+                        var mag = Math.sqrt(dx * dx + dy * dy)
+                        if (mag < 10) {
+                            dpad.btnUpPressed    = false
+                            dpad.btnDownPressed  = false
+                            dpad.btnLeftPressed  = false
+                            dpad.btnRightPressed = false
+                            Launcher.setMove(false, false, false, false)
+                            return
+                        }
+                        // heading: 0 = north, clockwise; matches spec UP=-45..45 etc.
+                        var heading = Math.atan2(dx, -dy) * 180 / Math.PI
+                        if (heading < 0) heading += 360
+                        var goUp    = (heading >= 315 || heading < 45)
+                        var goRight = (heading >= 45  && heading < 135)
+                        var goDown  = (heading >= 135 && heading < 225)
+                        var goLeft  = (heading >= 225 && heading < 315)
+                        dpad.btnUpPressed    = goUp
+                        dpad.btnDownPressed  = goDown
+                        dpad.btnLeftPressed  = goLeft
+                        dpad.btnRightPressed = goRight
+                        Launcher.setMove(goUp, goDown, goLeft, goRight)
+                    }
+
+                    onTouchUpdated: processTouch(touchPoints)
+                    onReleased: {
+                        dpad.btnUpPressed    = false
+                        dpad.btnDownPressed  = false
+                        dpad.btnLeftPressed  = false
+                        dpad.btnRightPressed = false
+                        Launcher.setMove(false, false, false, false)
+                    }
+                }
+            }
+
+            // ─── HUD PILLS ────────────────────────────────────────────────
+            Row {
+                id: hudRow
+                anchors.bottom: parent.bottom
+                anchors.right: parent.right
+                anchors.margins: 18
+                spacing: 8
+                z: 20
+
+                Rectangle {
+                    width: 72; height: 30; radius: 15
+                    color: Qt.rgba(0, 0, 0, 0.45)
+                    border.color: Qt.rgba(1, 1, 1, 0.18); border.width: 0.5
+                    Row {
+                        anchors.centerIn: parent; spacing: 4
+                        Text { text: "❤"; color: Qt.rgba(1, 0.3, 0.3, 0.9); font.pixelSize: 11 }
+                        Text { text: gameRoot.hudHp; color: "white"; font.pixelSize: 12; font.bold: true }
+                    }
+                }
+
+                Rectangle {
+                    width: 72; height: 30; radius: 15
+                    color: Qt.rgba(0, 0, 0, 0.45)
+                    border.color: Qt.rgba(1, 1, 1, 0.18); border.width: 0.5
+                    Row {
+                        anchors.centerIn: parent; spacing: 4
+                        Text { text: "◎"; color: Qt.rgba(1, 0.85, 0.2, 0.9); font.pixelSize: 11 }
+                        Text { text: gameRoot.hudAmmo; color: "white"; font.pixelSize: 12; font.bold: true }
+                    }
+                }
+
+                Rectangle {
+                    width: 72; height: 30; radius: 15
+                    color: Qt.rgba(0, 0, 0, 0.45)
+                    border.color: Qt.rgba(1, 1, 1, 0.18); border.width: 0.5
+                    Row {
+                        anchors.centerIn: parent; spacing: 4
+                        Text { text: "★"; color: Qt.rgba(0.3, 0.7, 1, 0.9); font.pixelSize: 11 }
+                        Text { text: gameRoot.hudScore; color: "white"; font.pixelSize: 12; font.bold: true }
+                    }
+                }
+            }
+
+            // ─── SHOOT FLASH ──────────────────────────────────────────────
+            Rectangle {
+                id: shootFlash
+                anchors.fill: parent
+                z: 25
+                color: "white"
+                opacity: 0
+                visible: opacity > 0
+
+                Connections {
+                    target: Launcher
+                    onShootingChanged: {
+                        if (shooting) flashAnim.restart()
+                    }
+                }
+
+                SequentialAnimation {
+                    id: flashAnim
+                    NumberAnimation {
+                        target: shootFlash; property: "opacity"
+                        from: 0; to: 0.08; duration: 75
+                        easing.type: Easing.OutQuad
+                    }
+                    NumberAnimation {
+                        target: shootFlash; property: "opacity"
+                        from: 0.08; to: 0; duration: 75
+                        easing.type: Easing.InQuad
                     }
                 }
             }
         }
-    }
-
-    Notification {
-        id: notification
     }
 }
