@@ -1,13 +1,14 @@
 {
-    "clickable_minimum_required": "7.0.0",
-    "framework": "ubuntu-sdk-20.04",
-    "builder": "cmake",
-    "restrict_arch": "arm64",
-    "prebuild": "test -d engine/data || (echo 'engine/data/ is missing; copy game data with: cp -a engine-src/data engine/data' >&2 && exit 1)",
-    "install_data": {
-        "engine/": "engine"
-    },
-    "ignore": [
-        "engine-src"
-    ]
+  "minimum_clickable_version": "7.0.0",
+  "framework": "ubuntu-sdk-20.04",
+  "builder": "cmake",
+  "app_id": "xonotic.ratrad",
+  "default_arch": "arm64",
+  "prebuild": "test -d engine/data || (echo 'Missing engine/data — run: cp -a engine-src/data engine/data' >&2 && exit 1)",
+  "install_data": {
+    "engine/": "engine",
+    "engine/data/xonotic.cfg": "engine/data/xonotic.cfg"
+  },
+  "install_lib": ["libSDL2-2.0.so.0"],
+  "ignore": ["engine-src", "build", ".clickable"]
 }
