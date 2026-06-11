@@ -7,7 +7,7 @@
         "xonotic": {
             "apparmor": "xonotic.apparmor",
             "desktop": "xonotic.desktop",
-            "orientation": ["landscape"]
+            "orientation": ["landscape", "inverted-landscape"]
         }
     },
     "version": "1.0.0",

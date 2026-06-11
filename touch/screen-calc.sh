@@ -1,0 +1,173 @@
+#!/bin/sh
+# Screen calculation layer — landscape dimensions and touch DPI for Ubuntu Touch.
+# Sourced by packaging/start.sh (not executed directly).
+#
+# Override for testing:
+#   XONOTIC_SCREEN_WIDTH=2400 XONOTIC_SCREEN_HEIGHT=1080
+#   XONOTIC_PHYS_MM_W=97 XONOTIC_PHYS_MM_H=214
+
+xonotic_screen_log() {
+    echo "xonotic-screen: $*" >&2
+}
+
+xonotic_align_even() {
+    local v="$1"
+    if [ "$((v % 2))" -ne 0 ]; then
+        v=$((v - 1))
+    fi
+    if [ "$v" -lt 2 ]; then
+        v=2
+    fi
+    echo "$v"
+}
+
+xonotic_parse_pair() {
+    local text="$1"
+    local w h
+    w=$(echo "$text" | sed -n 's/.*\([0-9][0-9]*\)x\([0-9][0-9]*\).*/\1/p' | head -1)
+    h=$(echo "$text" | sed -n 's/.*\([0-9][0-9]*\)x\([0-9][0-9]*\).*/\2/p' | head -1)
+    if [ -n "$w" ] && [ -n "$h" ] && [ "$w" -gt 0 ] && [ "$h" -gt 0 ]; then
+        XONOTIC_RAW_WIDTH="$w"
+        XONOTIC_RAW_HEIGHT="$h"
+        return 0
+    fi
+    return 1
+}
+
+xonotic_parse_phys_mm() {
+    local text="$1"
+    local wmm hmm
+    wmm=$(echo "$text" | sed -n 's/.*\([0-9][0-9]*\)mm x \([0-9][0-9]*\)mm.*/\1/p' | head -1)
+    hmm=$(echo "$text" | sed -n 's/.*\([0-9][0-9]*\)mm x \([0-9][0-9]*\)mm.*/\2/p' | head -1)
+    if [ -n "$wmm" ] && [ -n "$hmm" ] && [ "$wmm" -gt 0 ] && [ "$hmm" -gt 0 ]; then
+        XONOTIC_PHYS_MM_W="$wmm"
+        XONOTIC_PHYS_MM_H="$hmm"
+        return 0
+    fi
+    return 1
+}
+
+xonotic_detect_raw_dimensions() {
+    XONOTIC_RAW_WIDTH=""
+    XONOTIC_RAW_HEIGHT=""
+    XONOTIC_PHYS_MM_W="${XONOTIC_PHYS_MM_W:-}"
+    XONOTIC_PHYS_MM_H="${XONOTIC_PHYS_MM_H:-}"
+
+    if [ -n "${XONOTIC_SCREEN_WIDTH:-}" ] && [ -n "${XONOTIC_SCREEN_HEIGHT:-}" ]; then
+        XONOTIC_RAW_WIDTH="$XONOTIC_SCREEN_WIDTH"
+        XONOTIC_RAW_HEIGHT="$XONOTIC_SCREEN_HEIGHT"
+        xonotic_screen_log "using env XONOTIC_SCREEN_WIDTH/HEIGHT ${XONOTIC_RAW_WIDTH}x${XONOTIC_RAW_HEIGHT}"
+        return 0
+    fi
+
+    if command -v mirout >/dev/null 2>&1; then
+        local line
+        line=$(mirout 2>/dev/null | grep -E 'connected.*[0-9]+x[0-9]+' | head -1)
+        if [ -n "$line" ] && xonotic_parse_pair "$line"; then
+            xonotic_parse_phys_mm "$line" || true
+            xonotic_screen_log "mirout ${XONOTIC_RAW_WIDTH}x${XONOTIC_RAW_HEIGHT}"
+            return 0
+        fi
+    fi
+
+    if [ -r /sys/class/graphics/fb0/virtual_size ]; then
+        local fb
+        fb=$(tr ',' ' ' < /sys/class/graphics/fb0/virtual_size)
+        XONOTIC_RAW_WIDTH=$(echo "$fb" | awk '{print $1}')
+        XONOTIC_RAW_HEIGHT=$(echo "$fb" | awk '{print $2}')
+        if [ -n "$XONOTIC_RAW_WIDTH" ] && [ -n "$XONOTIC_RAW_HEIGHT" ]; then
+            xonotic_screen_log "fb0 ${XONOTIC_RAW_WIDTH}x${XONOTIC_RAW_HEIGHT}"
+            return 0
+        fi
+    fi
+
+    if command -v xdpyinfo >/dev/null 2>&1 && [ -n "${DISPLAY:-}" ]; then
+        local dims
+        dims=$(xdpyinfo 2>/dev/null | awk '/dimensions:/{print $2}')
+        if [ -n "$dims" ]; then
+            XONOTIC_RAW_WIDTH="${dims%%x*}"
+            XONOTIC_RAW_HEIGHT="${dims#*x}"
+            xonotic_screen_log "xdpyinfo ${XONOTIC_RAW_WIDTH}x${XONOTIC_RAW_HEIGHT}"
+            return 0
+        fi
+    fi
+
+    if command -v wlr-randr >/dev/null 2>&1; then
+        local mode
+        mode=$(wlr-randr 2>/dev/null | awk '/current/ {print $1; exit}')
+        if [ -n "$mode" ] && xonotic_parse_pair "$mode"; then
+            xonotic_screen_log "wlr-randr ${XONOTIC_RAW_WIDTH}x${XONOTIC_RAW_HEIGHT}"
+            return 0
+        fi
+    fi
+
+    XONOTIC_RAW_WIDTH="${XONOTIC_DEFAULT_WIDTH:-1920}"
+    XONOTIC_RAW_HEIGHT="${XONOTIC_DEFAULT_HEIGHT:-1080}"
+    xonotic_screen_log "fallback ${XONOTIC_RAW_WIDTH}x${XONOTIC_RAW_HEIGHT}"
+}
+
+xonotic_landscape_dims() {
+    local w="$1"
+    local h="$2"
+    if [ "$w" -ge "$h" ]; then
+        XONOTIC_VID_WIDTH="$w"
+        XONOTIC_VID_HEIGHT="$h"
+        XONOTIC_ORIENTATION="landscape"
+    else
+        XONOTIC_VID_WIDTH="$h"
+        XONOTIC_VID_HEIGHT="$w"
+        XONOTIC_ORIENTATION="landscape-rotated"
+    fi
+    XONOTIC_VID_WIDTH=$(xonotic_align_even "$XONOTIC_VID_WIDTH")
+    XONOTIC_VID_HEIGHT=$(xonotic_align_even "$XONOTIC_VID_HEIGHT")
+}
+
+xonotic_calc_dpi() {
+    local w="$1"
+    local h="$2"
+    local wmm="${XONOTIC_PHYS_MM_W:-}"
+    local hmm="${XONOTIC_PHYS_MM_H:-}"
+
+    if [ -n "$wmm" ] && [ -n "$hmm" ]; then
+        if [ "$XONOTIC_ORIENTATION" = "landscape-rotated" ]; then
+            local swap="$wmm"
+            wmm="$hmm"
+            hmm="$swap"
+        fi
+        XONOTIC_TOUCH_XDPI=$(awk "BEGIN { printf \"%.0f\", $w / ($wmm / 25.4) }")
+        XONOTIC_TOUCH_YDPI=$(awk "BEGIN { printf \"%.0f\", $h / ($hmm / 25.4) }")
+    else
+        XONOTIC_TOUCH_XDPI="${XONOTIC_TOUCH_XDPI:-320}"
+        XONOTIC_TOUCH_YDPI="${XONOTIC_TOUCH_YDPI:-320}"
+    fi
+
+    XONOTIC_TOUCH_DENSITY=$(awk "BEGIN { d=($XONOTIC_TOUCH_XDPI + $XONOTIC_TOUCH_YDPI) / 320; if (d < 1) d=1; printf \"%.2f\", d }")
+}
+
+xonotic_write_layout_file() {
+    local path="$1"
+    if [ -z "$path" ]; then
+        return 0
+    fi
+    cat > "$path" <<EOF
+// Generated by touch/screen-calc.sh — landscape layout for touch HUD
+// raw ${XONOTIC_RAW_WIDTH}x${XONOTIC_RAW_HEIGHT} -> vid ${XONOTIC_VID_WIDTH}x${XONOTIC_VID_HEIGHT}
+vid_width ${XONOTIC_VID_WIDTH}
+vid_height ${XONOTIC_VID_HEIGHT}
+vid_touchscreen_xdpi ${XONOTIC_TOUCH_XDPI}
+vid_touchscreen_ydpi ${XONOTIC_TOUCH_YDPI}
+vid_touchscreen_density ${XONOTIC_TOUCH_DENSITY}
+EOF
+}
+
+# Main entry — sets globals and optional layout cfg path in $2.
+xonotic_screen_calc() {
+    local layout_file="${1:-}"
+
+    xonotic_detect_raw_dimensions
+    xonotic_landscape_dims "$XONOTIC_RAW_WIDTH" "$XONOTIC_RAW_HEIGHT"
+    xonotic_calc_dpi "$XONOTIC_VID_WIDTH" "$XONOTIC_VID_HEIGHT"
+    xonotic_write_layout_file "$layout_file"
+
+    xonotic_screen_log "landscape ${XONOTIC_VID_WIDTH}x${XONOTIC_VID_HEIGHT} dpi ${XONOTIC_TOUCH_XDPI}x${XONOTIC_TOUCH_YDPI} density ${XONOTIC_TOUCH_DENSITY}"
+}

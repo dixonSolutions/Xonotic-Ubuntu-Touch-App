@@ -1,7 +1,7 @@
 [Desktop Entry]
 _Name=Xonotic
-Exec=env APP_DIR=@DATA_DIR@ LD_LIBRARY_PATH=@DATA_DIR@/lib/aarch64-linux-gnu:$LD_LIBRARY_PATH QML2_IMPORT_PATH=@DATA_DIR@/lib/aarch64-linux-gnu qmlscene %U @DATA_DIR@/xonotic/qml/Main.qml
-Icon=assets/logo.svg
+Exec=bin/start.sh
 Terminal=false
 Type=Application
 X-Ubuntu-Touch=true
+X-Ubuntu-Supported-Orientations=landscape,inverted-landscape
