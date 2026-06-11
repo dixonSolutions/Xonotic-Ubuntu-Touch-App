@@ -1,13 +1,17 @@
 {
-  "clickable_minimum_required": "7.0.0",
+  "clickable_minimum_required": "8.0.0",
   "framework": "ubuntu-sdk-20.04",
-  "builder": "cmake",
-  "restrict_arch": "arm64",
-  "prebuild": "test -d engine/data || (echo 'Missing engine/data — run: cp -a engine-src/data engine/data' >&2 && exit 1)",
-  "install_data": {
-    "engine/": "engine",
-    "engine/data/xonotic.cfg": "engine/data/xonotic.cfg"
+  "builder": "custom",
+  "dependencies_target": "libsdl2-dev libjpeg-dev zlib1g-dev libxmp-dev",
+  "prebuild": "bash ${ROOT}/scripts/fetch-sources.sh code",
+  "scripts": {
+    "build": "scripts/build.sh",
+    "install": "scripts/install.sh"
   },
-  "install_lib": ["libSDL2-2.0.so.0"],
-  "ignore": ["engine-src", "build", ".clickable"]
+  "ignore": [
+    "build",
+    ".clickable",
+    "engine/mediasource",
+    "engine/netradiant"
+  ]
 }

@@ -1,11 +1,23 @@
-# Build artifacts
+# Build outputs — never commit; maintainers do not compile locally
 build/
 .clickable/
+bin/
 
-# Xonotic source checkout (build locally with ./all update)
-engine-src/
+# Accidental compile artifacts inside fetched trees
+engine/darkplaces/build-obj/
+engine/darkplaces/darkplaces-sdl
+engine/darkplaces/darkplaces-sdl-release
+engine/darkplaces/darkplaces-sdl-debug
+engine/darkplaces/darkplaces-sdl-profile
+engine/gmqcc/gmqcc
+engine/d0_blind_id/.libs/
 
-# Game data is copied from engine-src during build; keep binary tracked separately if needed
-# Ignore all data files but explicitly track our touch config
-engine/data/*
-!engine/data/xonotic.cfg
+# Fetched upstream (clone with scripts/fetch-sources.sh)
+engine/
+
+# Runtime data copies
+data/*
+!data/README.md
+
+# Optional: commit unified diffs here instead of whole engine trees
+# !patches/
