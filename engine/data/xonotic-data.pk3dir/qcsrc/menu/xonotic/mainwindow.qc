@@ -7,7 +7,6 @@
 #include "dialog_termsofservice.qh"
 #include "dialog_firstrun.qh"
 #include "dialog_touch_wizard.qh"
-#include "dialog_touch_home.qh"
 #include "dialog_hudsetup_exit.qh"
 #include "dialog_hudpanel_notification.qh"
 #include "dialog_hudpanel_ammo.qh"
@@ -70,10 +69,7 @@ void MainWindow_draw(entity me)
 		}
 		else if(me.firstRunDialog.shouldShow())
 			DialogOpenButton_Click_withCoords(NULL, me.firstRunDialog, '0 0 0', eX * conwidth + eY * conheight);
-		// XONOTIC_UT_TOUCH_WIZARD_CHAIN
-		else if(me.touchSetupDialog.shouldShow())
-			DialogOpenButton_Click_withCoords(NULL, me.touchSetupDialog, '0 0 0', eX * conwidth + eY * conheight);
-		
+
 		me.firstDraw = false;
 	}
 }

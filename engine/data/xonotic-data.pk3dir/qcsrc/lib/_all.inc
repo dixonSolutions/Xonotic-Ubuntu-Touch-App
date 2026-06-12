@@ -49,12 +49,12 @@
 #ifdef CSQC
 	#include <dpdefs/csprogsdefs.qh>
 	#include <dpdefs/keycodes.qh>
-#elifdef SVQC
+#elif defined(SVQC)
 	#include <server/sys-pre.qh>
 	#include <dpdefs/progsdefs.qh>
 	#include <dpdefs/dpextensions.qh>
 	#include <server/sys-post.qh>
-#elifdef MENUQC
+#elif defined(MENUQC)
 	#include <dpdefs/menudefs.qh>
 	#include <dpdefs/keycodes.qh>
 #endif

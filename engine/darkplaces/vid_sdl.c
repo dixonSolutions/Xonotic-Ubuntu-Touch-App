@@ -594,7 +594,9 @@ static void VID_TouchscreenCursor(float px, float py, float pwidth, float pheigh
 	static int relclickxy[2];
 	static double clickrealtime = 0;
 
-	if (steelstorm_showing_mousecursor && steelstorm_showing_mousecursor->integer)
+	// The steelstorm_showing_mousecursor guard was removed: for Ubuntu Touch / Xonotic
+	// we always want cursor tracking active in menu/UI states when called from
+	// IN_Move_TouchScreen_Xonotic's default case.
 	if (pwidth > 0 && pheight > 0)
 	{
 		fx = px / vid_conwidth.value;
@@ -859,18 +861,12 @@ static void IN_Move_TouchScreen_SteelStorm(void)
 		}
 		break;
 	default:
-		if (!steelstorm_showing_mousecursor || !steelstorm_showing_mousecursor->integer)
-		{
-			Vid_ClearAllTouchscreenAreas(14);
-			// this way we can skip cutscenes
-			VID_TouchscreenArea( 0,   0,   0, vid_conwidth.value, vid_conheight.value, NULL                         , 0.0f, NULL, NULL, &buttons[14], K_ESCAPE, NULL, 0, 0, 0, false);
-		}
-		else
-		{
-			// in_windowmouse_x* is in screen resolution coordinates, not console resolution
-			VID_TouchscreenCursor((float)in_windowmouse_x/vid_width.value*vid_conwidth.value, (float)in_windowmouse_y/vid_height.value*vid_conheight.value, 192*xscale, 192*yscale, &buttons[0], K_MOUSE1);
-			Vid_ClearAllTouchscreenAreas(0);
-		}
+		// Always use cursor-style interaction for menu/UI states in touch mode.
+		// The original steelstorm_showing_mousecursor guard is SteelStorm-specific
+		// and is never set by Xonotic, which caused every tap to send K_ESCAPE.
+		// in_windowmouse_x/y are in screen resolution coordinates, not console resolution.
+		VID_TouchscreenCursor((float)in_windowmouse_x/vid_width.value*vid_conwidth.value, (float)in_windowmouse_y/vid_height.value*vid_conheight.value, 192*xscale, 192*yscale, &buttons[0], K_MOUSE1);
+		Vid_ClearAllTouchscreenAreas(0);
 		break;
 	}
 
@@ -881,6 +877,78 @@ static void IN_Move_TouchScreen_SteelStorm(void)
 	cl.cmd.sidemove += move[0] * cl_sidespeed.value;
 	cl.viewangles[0] += aim[1] * cl_pitchspeed.value * cl.realframetime;
 	cl.viewangles[1] -= aim[0] * cl_yawspeed.value * cl.realframetime;
+}
+
+static qbool VID_TouchscreenHasRealDevices(void)
+{
+	return SDL_GetNumTouchDevices() > 0;
+}
+
+static void VID_SyncDesktopMouse(void)
+{
+	int x, y;
+	SDL_GetMouseState(&x, &y);
+	in_windowmouse_x = x;
+	in_windowmouse_y = y;
+}
+
+static void IN_Move_TouchScreen_Xonotic(void)
+{
+	int i, numfingers;
+	float xscale, yscale;
+	float move[3], aim[3];
+	static qbool buttons[128];
+	keydest_t keydest = (key_consoleactive & KEY_CONSOLEACTIVE_USER) ? key_console : key_dest;
+	memset(multitouchs, 0, sizeof(multitouchs));
+
+	for (i = 0, numfingers = 0; i < MAXFINGERS - 1; i++)
+		if (multitouch[i][0])
+			numfingers++;
+
+	// Mouse as a touch finger for in-game CSQC controls (desktop testing only).
+	if (numfingers == 0 && vid_touchscreen.integer && keydest == key_game)
+	{
+		int x, y;
+		multitouch[MAXFINGERS-1][0] = SDL_GetMouseState(&x, &y) ? 11 : 0;
+		multitouch[MAXFINGERS-1][1] = (float)x / vid.mode.width;
+		multitouch[MAXFINGERS-1][2] = (float)y / vid.mode.height;
+	}
+	else if (numfingers > 0)
+		multitouch[MAXFINGERS-1][0] = 0;
+	else
+		multitouch[MAXFINGERS-1][0] = 0;
+
+	xscale = vid_touchscreen_density.value / 2.0f;
+	yscale = vid_touchscreen_density.value / 2.0f;
+	switch(keydest)
+	{
+	case key_console:
+		Vid_ClearAllTouchscreenAreas(14);
+		if (!VID_TouchscreenHasRealDevices())
+			VID_SyncDesktopMouse();
+		break;
+	case key_game:
+		// CSQC touch controls read fingers via gettouchfinger — no engine overlays.
+		Vid_ClearAllTouchscreenAreas(0);
+		break;
+	default:
+		if (!VID_TouchscreenHasRealDevices())
+		{
+			// Desktop menu: direct mouse — the touch puck cursor fights SDL motion.
+			VID_SyncDesktopMouse();
+			Vid_ClearAllTouchscreenAreas(0);
+		}
+		else
+		{
+			// Real touchscreen menu: grab-and-drag puck cursor.
+			VID_TouchscreenCursor((float)in_windowmouse_x/vid_width.value*vid_conwidth.value, (float)in_windowmouse_y/vid_height.value*vid_conheight.value, 192*xscale, 192*yscale, &buttons[0], K_MOUSE1);
+			Vid_ClearAllTouchscreenAreas(0);
+		}
+		break;
+	}
+
+	if (VID_ShowingKeyboard() && (float)in_windowmouse_y > vid_height.value / 2 - 10)
+		in_windowmouse_y = 128;
 }
 
 static void IN_Move_TouchScreen_Quake(void)
@@ -984,6 +1052,11 @@ void IN_Move( void )
 		case GAME_STEELSTORM:
 			IN_Move_TouchScreen_SteelStorm();
 			break;
+		case GAME_XONOTIC:
+		case GAME_NEXUIZ:
+		case GAME_VORETOURNAMENT:
+			IN_Move_TouchScreen_Xonotic();
+			break;
 		default:
 			IN_Move_TouchScreen_Quake();
 			break;
@@ -1026,6 +1099,13 @@ void IN_Move( void )
 		SDL_GetMouseState(&x, &y);
 		in_windowmouse_x = x;
 		in_windowmouse_y = y;
+	}
+
+	if (vid_touchscreen.integer && !VID_TouchscreenHasRealDevices())
+	{
+		keydest_t kd = (key_consoleactive & KEY_CONSOLEACTIVE_USER) ? key_console : key_dest;
+		if (kd != key_game && kd != key_console)
+			VID_SyncDesktopMouse();
 	}
 
 	//Con_Printf("Mouse position: in_mouse %f %f in_windowmouse %f %f\n", in_mouse_x, in_mouse_y, in_windowmouse_x, in_windowmouse_y);
@@ -1122,10 +1202,10 @@ void Sys_SDL_HandleEvents(void)
 				else
 					Con_DPrintf("SDL_Event: SDL_MOUSEBUTTONUP\n");
 #endif
-				if (!vid_touchscreen.integer)
-				if (event.button.button > 0 && event.button.button <= ARRAY_SIZE(buttonremap))
-					Key_Event( buttonremap[event.button.button - 1], 0, event.button.state == SDL_PRESSED );
-				break;
+			if ((!vid_touchscreen.integer || SDL_GetNumTouchDevices() == 0)
+				&& event.button.button > 0 && event.button.button <= ARRAY_SIZE(buttonremap))
+				Key_Event( buttonremap[event.button.button - 1], 0, event.button.state == SDL_PRESSED );
+			break;
 			case SDL_MOUSEWHEEL:
 				// TODO support wheel x direction.
 				i = event.wheel.y;
@@ -1233,40 +1313,48 @@ void Sys_SDL_HandleEvents(void)
 						break;
 					case SDL_WINDOWEVENT_TAKE_FOCUS:
 						break;
-					case SDL_WINDOWEVENT_HIT_TEST:
-						break;
-					case SDL_WINDOWEVENT_ICCPROF_CHANGED:
-						break;
-					case SDL_WINDOWEVENT_DISPLAY_CHANGED:
-						// this event can't be relied on in fullscreen, see SDL_WINDOWEVENT_MOVED above
-						vid.mode.display = event.window.data1;
-						break;
-					}
+				case SDL_WINDOWEVENT_HIT_TEST:
+					break;
+#ifdef SDL_WINDOWEVENT_ICCPROF_CHANGED
+				case SDL_WINDOWEVENT_ICCPROF_CHANGED:
+					break;
+#endif
+#ifdef SDL_WINDOWEVENT_DISPLAY_CHANGED
+				case SDL_WINDOWEVENT_DISPLAY_CHANGED:
+					// this event can't be relied on in fullscreen, see SDL_WINDOWEVENT_MOVED above
+					vid.mode.display = event.window.data1;
+					break;
+#endif
+				}
 				}
 				break;
-			case SDL_DISPLAYEVENT: // Display hotplugging
-				switch (event.display.event)
-				{
-					case SDL_DISPLAYEVENT_CONNECTED:
-						Con_Printf(CON_WARN "Display %i connected: %s\n", event.display.display, SDL_GetDisplayName(event.display.display));
+		case SDL_DISPLAYEVENT: // Display hotplugging
+			switch (event.display.event)
+			{
+#ifdef SDL_DISPLAYEVENT_CONNECTED
+				case SDL_DISPLAYEVENT_CONNECTED:
+					Con_Printf(CON_WARN "Display %i connected: %s\n", event.display.display, SDL_GetDisplayName(event.display.display));
 #ifdef __linux__
-						Con_Print(CON_WARN "A vid_restart may be necessary!\n");
+					Con_Print(CON_WARN "A vid_restart may be necessary!\n");
 #endif
-						Cvar_SetValueQuick(&vid_info_displaycount, SDL_GetNumVideoDisplays());
-						// Ideally we'd call VID_ApplyDisplayMode() to try to switch to the preferred display here,
-						// but we may need a vid_restart first, see comments in VID_ApplyDisplayMode().
-						break;
-					case SDL_DISPLAYEVENT_DISCONNECTED:
-						Con_Printf(CON_WARN "Display %i disconnected.\n", event.display.display);
+					Cvar_SetValueQuick(&vid_info_displaycount, SDL_GetNumVideoDisplays());
+					// Ideally we'd call VID_ApplyDisplayMode() to try to switch to the preferred display here,
+					// but we may need a vid_restart first, see comments in VID_ApplyDisplayMode().
+					break;
+#endif
+#ifdef SDL_DISPLAYEVENT_DISCONNECTED
+				case SDL_DISPLAYEVENT_DISCONNECTED:
+					Con_Printf(CON_WARN "Display %i disconnected.\n", event.display.display);
 #ifdef __linux__
-						Con_Print(CON_WARN "A vid_restart may be necessary!\n");
+					Con_Print(CON_WARN "A vid_restart may be necessary!\n");
 #endif
-						Cvar_SetValueQuick(&vid_info_displaycount, SDL_GetNumVideoDisplays());
-						break;
-					case SDL_DISPLAYEVENT_ORIENTATION:
-						break;
-				}
-				break;
+					Cvar_SetValueQuick(&vid_info_displaycount, SDL_GetNumVideoDisplays());
+					break;
+#endif
+				case SDL_DISPLAYEVENT_ORIENTATION:
+					break;
+			}
+			break;
 			case SDL_TEXTEDITING:
 #ifdef DEBUGSDLEVENTS
 				Con_DPrintf("SDL_Event: SDL_TEXTEDITING - composition = %s, cursor = %d, selection lenght = %d\n", event.edit.text, event.edit.start, event.edit.length);
@@ -1288,8 +1376,15 @@ void Sys_SDL_HandleEvents(void)
 					Key_Event(K_TEXT, unicode, false);
 				}
 				break;
-			case SDL_MOUSEMOTION:
-				break;
+		case SDL_MOUSEMOTION:
+			// In touchscreen mode update the window-relative cursor position so
+			// VID_TouchscreenCursor can track the pointer and fire K_MOUSE1 correctly.
+			if (vid_touchscreen.integer)
+			{
+				in_windowmouse_x = event.motion.x;
+				in_windowmouse_y = event.motion.y;
+			}
+			break;
 			case SDL_FINGERDOWN:
 #ifdef DEBUGSDLEVENTS
 				Con_DPrintf("SDL_FINGERDOWN for finger %i\n", (int)event.tfinger.fingerId);

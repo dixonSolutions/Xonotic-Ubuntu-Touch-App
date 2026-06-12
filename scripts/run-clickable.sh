@@ -87,6 +87,7 @@ fi
 
 xonotic_ensure_clickable_ready "$MODE"
 xonotic_ensure_game_code
+xonotic_ensure_game_assets
 
 mapfile -t MODE_ARGS < <(xonotic_clickable_build_args "$MODE")
 

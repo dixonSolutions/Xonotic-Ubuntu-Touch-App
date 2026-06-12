@@ -114,7 +114,12 @@ const float MENU_ASPECT = 1280 / 1024;
 
 void draw_reset_cropped()
 {
-	draw_reset(conwidth, conheight, 0.5 * (realconwidth - conwidth), 0.5 * (realconheight - conheight));
+	// Portrait: use full console — landscape MENU_ASPECT letterboxing leaves a dead
+	// band at the top where the cursor cannot reach menu buttons.
+	if (realconheight > realconwidth)
+		draw_reset(realconwidth, realconheight, 0, 0);
+	else
+		draw_reset(conwidth, conheight, 0.5 * (realconwidth - conwidth), 0.5 * (realconheight - conheight));
 }
 void draw_reset_full()
 {
@@ -135,7 +140,12 @@ void UpdateConWidthHeight(float w, float h, float p)
 	conheight_s = conheight;
 	realconwidth = cvar("vid_conwidth");
 	realconheight = cvar("vid_conheight");
-	if (realconwidth / realconheight > MENU_ASPECT)
+	if (realconheight > realconwidth)
+	{
+		conwidth = realconwidth;
+		conheight = realconheight;
+	}
+	else if (realconwidth / realconheight > MENU_ASPECT)
 	{
 		// widescreen
 		conwidth = realconheight * MENU_ASPECT;
@@ -913,7 +923,17 @@ void m_draw(float width, float height)
 	if (menuMouseMode)
 	{
 		vector rawMousePos = getmousepos();
-		vector newMouse = globalToBox(rawMousePos, draw_shift, draw_scale);
+		vector newMouse = '0 0 0';
+		if (realconheight > realconwidth)
+		{
+			// Portrait: map console pixels directly (no letterbox transform).
+			newMouse.x = rawMousePos.x / max(1, realconwidth);
+			newMouse.y = rawMousePos.y / max(1, realconheight);
+		}
+		else
+			newMouse = globalToBox(rawMousePos, draw_shift, draw_scale);
+		newMouse.x = bound(0, newMouse.x, 1);
+		newMouse.y = bound(0, newMouse.y, 1);
 		if (rawMousePos != '0 0 0' && newMouse != menuMousePos)
 		{
 			menuMousePos = newMouse;

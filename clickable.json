@@ -2,8 +2,11 @@
   "clickable_minimum_required": "8.0.0",
   "framework": "ubuntu-sdk-20.04",
   "builder": "custom",
-  "dependencies_target": "libsdl2-dev libjpeg-dev zlib1g-dev libxmp-dev",
+  "build": "bash ${ROOT}/scripts/build.sh",
+  "dependencies_target": "libsdl2-dev libjpeg-dev zlib1g-dev libxmp-dev libgmp-dev zip",
   "prebuild": "bash ${ROOT}/scripts/fetch-sources.sh code",
+  "postbuild": "CLICKABLE_DEST=${INSTALL_DIR} bash ${ROOT}/scripts/install.sh",
+  "skip_review": true,
   "scripts": {
     "build": "scripts/build.sh",
     "install": "scripts/install.sh"

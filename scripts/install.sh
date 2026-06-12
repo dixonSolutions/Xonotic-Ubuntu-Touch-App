@@ -32,7 +32,7 @@ if [ -d "$ROOT/touch/profiles" ]; then
     cp -a "$ROOT/touch/profiles/." "$DEST/data/touch/profiles/"
 fi
 
-install -m 644 "$ROOT/xonotic.apparmor" "$DEST/share/xonotic/xonotic.apparmor"
+install -m 644 "$ROOT/xonotic.apparmor" "$DEST/xonotic.apparmor"
 
 sed -e "s/\$ENV{ARCH}/${ARCH}/g" \
     -e "s/\$ENV{CLICK_FRAMEWORK}/${CLICK_FRAMEWORK}/g" \

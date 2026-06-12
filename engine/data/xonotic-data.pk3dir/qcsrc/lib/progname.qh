@@ -2,9 +2,9 @@
 
 #ifdef MENUQC
 	#define PROGNAME "MENUQC"
-#elifdef SVQC
+#elif defined(SVQC)
 	#define PROGNAME "SVQC"
-#elifdef CSQC
+#elif defined(CSQC)
 	#define PROGNAME "CSQC"
 #else
 	#error "Unable to detect PROGNAME"
