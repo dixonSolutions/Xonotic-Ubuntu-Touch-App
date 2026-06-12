@@ -1,0 +1,21 @@
+# Upstream superproject ignores sub-repos; we vendor them in this port repo.
+/build/
+/daemon-glue
+/div0-gittools
+/netradiant
+/netradiant-xonoticpack
+/mediasource
+/*.d0si
+*.yes
+*.no
+/data.old/
+/xonstat-go/
+/xonstatdb/
+/xonstat-badges/
+/xonotic.org
+/xonotic.wiki
+/wiki
+.idea/
+/result*
+/.serverbench_temp
+_CodeSignature/

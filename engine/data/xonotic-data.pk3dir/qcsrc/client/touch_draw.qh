@@ -1,0 +1,6 @@
+#pragma once
+#include "touch_input.qh"
+#include "touch_glass.qh"
+#include "touch_layout.qh"
+
+void Touch_Draw(void);

@@ -1,0 +1,11 @@
+#pragma once
+
+#include "tab.qh"
+CLASS(XonoticTouchSettingsTab, XonoticTab)
+	METHOD(XonoticTouchSettingsTab, fill, void(entity));
+	ATTRIB(XonoticTouchSettingsTab, intendedWidth, float, 0.9);
+	ATTRIB(XonoticTouchSettingsTab, rows, float, 17);
+	ATTRIB(XonoticTouchSettingsTab, columns, float, 6);
+	ATTRIB(XonoticTouchSettingsTab, name, string, "touchsettings");
+ENDCLASS(XonoticTouchSettingsTab)
+entity makeXonoticTouchSettingsTab();

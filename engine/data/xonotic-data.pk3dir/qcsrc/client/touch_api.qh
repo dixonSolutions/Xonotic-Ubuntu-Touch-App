@@ -1,0 +1,7 @@
+#pragma once
+// Public entry points for Xonotic client integration (wired in main.qc / view.qc)
+
+void Touch_Init(void);
+void Touch_Frame(void);
+void Touch_Draw(void);
+bool Touch_InputEvent(float bInputType, float nPrimary, float nSecondary);

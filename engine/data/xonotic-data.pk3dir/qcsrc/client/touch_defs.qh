@@ -1,0 +1,40 @@
+#pragma once
+
+// Ubuntu Touch port — touch control layer (see docs/CONTROLS.md)
+
+const int TOUCH_MAX_FINGERS = 3;
+const int TOUCH_ENGINE_SLOTS = 10;
+
+const int TOUCH_SLOT_NONE = -1;
+const int TOUCH_SLOT_MOVE = 0;
+const int TOUCH_SLOT_LOOK = 1;
+const int TOUCH_SLOT_FIRE = 2;
+
+const int TOUCH_WEAPON_WHEEL = 0;
+const int TOUCH_WEAPON_3SLOT = 1;
+const int TOUCH_WEAPON_CYCLE = 2;
+
+const int TOUCH_FIRE_HOLD = 0;
+const int TOUCH_FIRE_TOGGLE = 1;
+
+const int TOUCH_ZOOM_HOLD = 0;
+const int TOUCH_ZOOM_TOGGLE = 1;
+
+const int TOUCH_DODGE_BUTTON = 0;
+const int TOUCH_DODGE_DOUBLETAP = 1;
+
+const int TOUCH_WIDGET_NONE = -1;
+const int TOUCH_WIDGET_MOVE = 0;
+const int TOUCH_WIDGET_FIRE = 1;
+const int TOUCH_WIDGET_JUMP = 2;
+const int TOUCH_WIDGET_CROUCH = 3;
+const int TOUCH_WIDGET_WEAPON = 4;
+const int TOUCH_WIDGET_ZOOM = 5;
+const int TOUCH_WIDGET_DODGE = 6;
+const int TOUCH_WIDGET_COUNT = 7;
+
+// Glass palette (OpenGL drawfill tints)
+const vector TOUCH_GLASS_TINT = '0.82 0.88 0.95';
+const vector TOUCH_GLASS_HIGHLIGHT = '1 1 1';
+const vector TOUCH_GLASS_SHADOW = '0.05 0.08 0.12';
+const vector TOUCH_GLASS_ACCENT = '0.45 0.72 1.0';

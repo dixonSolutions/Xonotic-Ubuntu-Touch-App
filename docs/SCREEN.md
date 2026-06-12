@@ -32,7 +32,7 @@ Use engine cvars already set at runtime:
 - `vid_width`, `vid_height`
 - `vid_touchscreen_xdpi`, `vid_touchscreen_ydpi`, `vid_touchscreen_density`
 
-Future touch HUD in `qcsrc/client/` should read these (not hardcoded 1920×1080).
+Touch HUD in `qcsrc/client/` should read these (not hardcoded 1920×1080). Control layout and feel: [CONTROLS.md](CONTROLS.md).
 
 ## Files
 

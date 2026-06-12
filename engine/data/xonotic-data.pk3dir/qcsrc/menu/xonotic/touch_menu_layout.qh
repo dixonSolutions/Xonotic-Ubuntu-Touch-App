@@ -1,0 +1,3 @@
+#pragma once
+
+void TouchMenu_WriteLayoutFile(string path);

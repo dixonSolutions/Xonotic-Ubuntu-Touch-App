@@ -13,7 +13,7 @@ fi
 mkdir -p "$OUT_DIR"
 
 if [ -f "$ROOT/engine/data/xonotic-data.pk3dir/qcsrc/Makefile" ]; then
-    echo "Compiling QuakeC + engine via engine/all (Clickable SDK)..."
+    echo "Compiling QuakeC + engine (integrated engine/ tree, Clickable SDK)..."
     cd "$ROOT/engine"
     export MAKEFLAGS="${MAKEFLAGS:--j$(nproc)}"
     # Build deps + QC + SDL client; skip map autobuild download at end of ./all compile.

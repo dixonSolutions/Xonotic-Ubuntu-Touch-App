@@ -23,6 +23,10 @@ test -f "$ROOT/touch/screen-calc.sh" || {
     echo "Missing touch/screen-calc.sh" >&2
     exit 1
 }
+test -f "$ROOT/touch/profiles/standard.cfg" || {
+    echo "Missing touch/profiles/standard.cfg" >&2
+    exit 1
+}
 
 mkdir -p "$ROOT/data"
 cp -f "$ROOT/touch/xonotic.cfg" "$ROOT/data/xonotic.cfg"

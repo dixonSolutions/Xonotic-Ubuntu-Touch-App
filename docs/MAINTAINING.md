@@ -4,28 +4,50 @@ This project is designed so **you edit source and others build**. That saves dis
 
 ## Daily workflow
 
-1. `./scripts/fetch-sources.sh code` — clones source into `engine/` (large, but no compile).
-2. Edit files under `engine/` (see [SOURCES.md](SOURCES.md)).
-3. Commit and share your work (see below).
+1. Clone this repo — `engine/` already contains the full Xonotic fork with Ubuntu Touch changes integrated.
+2. Edit files under `engine/` directly (see [SOURCES.md](SOURCES.md)).
+3. Commit and push your work in this repo.
 4. Ask a Clickable tester to run `clickable build --arch arm64` on your branch.
 
 Do **not** run `scripts/build-engine.sh`, `scripts/compile-for-click.sh`, or `cd engine && ./all compile` unless you explicitly want a local build.
 
 ## Sharing changes
 
-`engine/` is not committed to this port repo (too large, separate upstream histories). Use one of:
+`engine/` source is **committed in this repo** (minus build artifacts and large binary assets). Push branches/PRs here like any normal project.
 
 | Method | When |
 |--------|------|
-| **Fork + push** | Fork [darkplaces](https://gitlab.com/xonotic/darkplaces) and [xonotic-data.pk3dir](https://gitlab.com/xonotic/xonotic-data.pk3dir); push from nested repos under `engine/`; tell testers your fork URLs |
-| **`patches/`** | Export `git format-patch` / unified diffs into `patches/` and commit those to this repo (small, reviewable) |
-| **Branch on this repo** | Port-specific files only: `touch/`, `packaging/`, `scripts/`, docs |
+| **Commit in this repo** | Default — edit under `engine/`, `git add`, push (run `prepare-engine-for-git.sh` once if nested `.git` dirs remain) |
+| **GitLab fork sub-repos** | Push `engine/darkplaces`, `engine/data/xonotic-data.pk3dir` to your forks; sync upstream with `sync-upstream-fork.sh` |
 
-Point fetch scripts at your forks with environment variables:
+Large textures/models/sound are **not** in git (~3 GB). Testers fetch them with `./scripts/fetch-sources.sh assets` before a playable build.
+
+## Fork workflow (pull upstream, keep UT changes)
+
+Ubuntu Touch patches live **in the codebase** under `engine/` — not as separate overlay dirs or patch files.
+
+1. Fork on GitLab: [xonotic](https://gitlab.com/xonotic/xonotic), [darkplaces](https://gitlab.com/xonotic/darkplaces), [xonotic-data.pk3dir](https://gitlab.com/xonotic/xonotic-data.pk3dir).
+2. Initialize git in sub-repos (once, if vendored without `.git`):
 
 ```bash
-DARKPLACES_URL=https://gitlab.com/you/darkplaces.git ./scripts/fetch-sources.sh code
-DATA_URL=https://gitlab.com/you/xonotic-data.pk3dir.git ./scripts/fetch-sources.sh code
+./scripts/sync-upstream-fork.sh --init-git
+```
+
+3. Merge upstream and push to your forks:
+
+```bash
+FORK_DARKPLACES=https://gitlab.com/you/darkplaces.git \
+FORK_DATA=https://gitlab.com/you/xonotic-data.pk3dir.git \
+  ./scripts/sync-upstream-fork.sh
+```
+
+Resolve merge conflicts in `engine/` — UT-specific files include `touch_*.qc`, menu touch dialogs, and darkplaces multitouch builtins.
+
+4. Re-vendor for monorepo commit if needed:
+
+```bash
+./scripts/prepare-engine-for-git.sh --yes
+git add engine/
 ```
 
 ## Disk usage
@@ -33,8 +55,9 @@ DATA_URL=https://gitlab.com/you/xonotic-data.pk3dir.git ./scripts/fetch-sources.
 | Fetch | Approx. role |
 |-------|----------------|
 | `minimal` | Engine C only (~100 MB darkplaces) |
-| `code` | UI + QuakeC + compile deps (~large; `xonotic-data.pk3dir` includes assets) |
-| `full` | Entire game + maps/music (very large) |
+| `code` | UI + QuakeC + compile deps (source committed in git; assets fetched separately) |
+| `assets` | Binary pk3dir assets only (textures, models, sound, …) |
+| `full` | Entire game + maps/music via `./all update` (needs `engine/.git`) |
 
 After an accidental compile: `./scripts/clean-local-artifacts.sh`
 
@@ -49,7 +72,17 @@ XONOTIC_SCREEN_WIDTH=1224 XONOTIC_SCREEN_HEIGHT=2700 ./scripts/test-screen-calc.
 
 See [SCREEN.md](SCREEN.md). QuakeC HUD should use `vid_width` / `vid_height` cvars, not hardcoded pixels.
 
+## Touch controls
+
+Edit **`touch/profiles/*.cfg`** for preset bundles (no compile). Full cvar schema and CSQC checklist: [CONTROLS.md](CONTROLS.md).
+
+```bash
+XONOTIC_TOUCH_PROFILE=casual XONOTIC_TOUCH_PERF_PROFILE=battery ./scripts/test-screen-calc.sh
+# Profile env vars apply when packaging/start.sh runs on device; validate cfg syntax locally:
+grep -E '^touch_' touch/profiles/standard.cfg
+```
+
 ## What testers need
 
 - **Compile + UI changes**: `code` fetch (default in `clickable.json` prebuild).
-- **Play in-game on device**: `full` fetch before build, or ship map pk3s separately.
+- **Play in-game on device**: `assets` fetch before build, or ship map pk3s separately.
