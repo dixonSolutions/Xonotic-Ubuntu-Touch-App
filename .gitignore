@@ -1,9 +1,9 @@
-# Build outputs — never commit; maintainers do not compile locally
+# Build outputs — never commit
 build/
 .clickable/
 bin/
 
-# Accidental compile artifacts inside fetched trees
+# Engine compile artifacts only (full Xonotic tree under engine/ is tracked)
 engine/darkplaces/build-obj/
 engine/darkplaces/darkplaces-sdl
 engine/darkplaces/darkplaces-sdl-release
@@ -11,13 +11,29 @@ engine/darkplaces/darkplaces-sdl-debug
 engine/darkplaces/darkplaces-sdl-profile
 engine/gmqcc/gmqcc
 engine/d0_blind_id/.libs/
+engine/**/build-obj/
+engine/**/*.o
+engine/**/*.a
+engine/**/.libs/
 
-# Fetched upstream (clone with scripts/fetch-sources.sh)
-engine/
+# Nested upstream git metadata (strip with scripts/prepare-engine-for-git.sh)
+engine/**/.git/
 
-# Runtime data copies
+# QuakeC / packaging outputs (regenerated at build)
+engine/data/xonotic-data.pk3dir/progs/
+engine/data/xonotic-data.pk3dir/*.pk3
+engine/data/xonotic-data.pk3dir/.tmp/
+
+# Large game assets (~3 GB — fetch with scripts/fetch-sources.sh assets)
+engine/data/xonotic-data.pk3dir/textures/
+engine/data/xonotic-data.pk3dir/models/
+engine/data/xonotic-data.pk3dir/sound/
+engine/data/xonotic-data.pk3dir/maps/
+engine/data/xonotic-data.pk3dir/gfx/
+engine/data/xonotic-data.pk3dir/particles/
+engine/data/xonotic-data.pk3dir/demos/
+engine/data/xonotic-data.pk3dir/cubemaps/
+
+# Runtime data copies at repo root
 data/*
 !data/README.md
-
-# Optional: commit unified diffs here instead of whole engine trees
-# !patches/

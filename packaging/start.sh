@@ -7,6 +7,10 @@ DATA_DIR="${APP_ROOT}/data"
 BIN="${APP_ROOT}/bin/xonotic"
 SCREEN_CALC="${APP_ROOT}/share/xonotic/screen-calc.sh"
 LAYOUT_CFG="${DATA_DIR}/screen.layout.cfg"
+TOUCH_PROFILE="${XONOTIC_TOUCH_PROFILE:-standard}"
+TOUCH_PERF_PROFILE="${XONOTIC_TOUCH_PERF_PROFILE:-balanced}"
+TOUCH_PROFILES_DIR="${DATA_DIR}/touch/profiles"
+USER_TOUCH_LAYOUT="${XONOTIC_TOUCH_LAYOUT:-${HOME}/.xonotic/touch.layout.cfg}"
 
 if [ ! -x "$BIN" ]; then
     echo "xonotic: engine binary not found at $BIN" >&2
@@ -42,9 +46,24 @@ else
     export LD_LIBRARY_PATH="${APP_ROOT}/lib"
 fi
 
+TOUCH_EXEC_ARGS=""
+if [ -f "${TOUCH_PROFILES_DIR}/${TOUCH_PROFILE}.cfg" ]; then
+    TOUCH_EXEC_ARGS="${TOUCH_EXEC_ARGS} +exec touch/profiles/${TOUCH_PROFILE}.cfg"
+else
+    echo "xonotic: touch profile missing: ${TOUCH_PROFILES_DIR}/${TOUCH_PROFILE}.cfg" >&2
+fi
+if [ -f "${TOUCH_PROFILES_DIR}/${TOUCH_PERF_PROFILE}.cfg" ]; then
+    TOUCH_EXEC_ARGS="${TOUCH_EXEC_ARGS} +exec touch/profiles/${TOUCH_PERF_PROFILE}.cfg"
+fi
+if [ -f "$USER_TOUCH_LAYOUT" ]; then
+    TOUCH_EXEC_ARGS="${TOUCH_EXEC_ARGS} +exec ${USER_TOUCH_LAYOUT}"
+fi
+
+# shellcheck disable=SC2086
 exec "$BIN" -xonotic \
     +exec xonotic.cfg \
     +exec screen.layout.cfg \
+    ${TOUCH_EXEC_ARGS} \
     +vid_fullscreen 1 \
     +vid_touchscreen 1 \
     +vid_width "$XONOTIC_VID_WIDTH" \

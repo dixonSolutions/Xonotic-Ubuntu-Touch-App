@@ -1,0 +1,3 @@
+# Large binary trees are ignored from the repo root .gitignore (textures/, models/, …).
+*.pk3
+*.log

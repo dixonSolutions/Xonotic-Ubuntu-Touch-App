@@ -1,0 +1,10 @@
+#pragma once
+
+void Touch_SaveLayoutFile(string path);
+void Touch_ExportLayout(void);
+void Touch_ImportLayout(string path);
+void Touch_ApplyPreset(string name);
+void Touch_ResetPreset(void);
+void Touch_CmdCustomizeSave(void);
+void Touch_CmdCustomizeCancel(void);
+bool Touch_ConsoleCommand(string s, int argc);

@@ -1,5 +1,33 @@
 # engine/ directory
 
-Populated by `./scripts/fetch-sources.sh` — not stored in this git repo.
+Xonotic upstream source lives here. **Source is committed** in this port repo; build outputs and large binary assets are gitignored.
 
-After clone, upstream's own `engine/README.md` replaces any placeholder. For port workflow see [MAINTAINING.md](MAINTAINING.md).
+| Subtree | Contents |
+|---------|----------|
+| `darkplaces/` | C engine |
+| `data/xonotic-data.pk3dir/qcsrc/` | QuakeC menus, HUD, client |
+| `gmqcc/` | QuakeC compiler sources |
+| `d0_blind_id/` | Crypto library |
+| `misc/` | Bundled build dependencies (zlib, etc.) |
+
+## First-time git setup (maintainers)
+
+After `./scripts/fetch-sources.sh code`:
+
+```bash
+./scripts/clean-local-artifacts.sh          # drop any compile outputs
+./scripts/prepare-engine-for-git.sh --yes   # remove nested engine/**/.git
+git add engine/
+```
+
+Tracked size is ~60–80 MB (source + fonts). Textures/models/sound (~3 GB) stay local only — fetch with `./scripts/fetch-sources.sh assets` or `full`.
+
+## Updates from upstream
+
+```bash
+./scripts/sync-upstream-fork.sh --init-git   # once, if engine/ has no nested .git
+FORK_DARKPLACES=… FORK_DATA=… ./scripts/sync-upstream-fork.sh
+./scripts/prepare-engine-for-git.sh --yes    # before monorepo commit
+```
+
+See [MAINTAINING.md](MAINTAINING.md) and [SOURCES.md](SOURCES.md).

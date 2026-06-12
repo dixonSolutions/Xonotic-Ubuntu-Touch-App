@@ -1,0 +1,15 @@
+#pragma once
+#include "touch_look.qh"
+#include "touch_layout.qh"
+
+bool Touch_Active(void);
+void Touch_Frame(void);
+bool Touch_InputEvent(float bInputType, float nPrimary, float nSecondary);
+void Touch_ReleaseAll(void);
+
+extern bool touch_mouse_down;
+
+vector Touch_GetFinger(int engine_slot);
+vector Touch_MoveStickOffset(void);
+bool Touch_FireHeld(void);
+bool Touch_WeaponWheelOpen(void);

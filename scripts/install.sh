@@ -27,6 +27,10 @@ fi
 if [ -f "$ROOT/data/xonotic.cfg" ]; then
     install -m 644 "$ROOT/data/xonotic.cfg" "$DEST/data/xonotic.cfg"
 fi
+if [ -d "$ROOT/touch/profiles" ]; then
+    mkdir -p "$DEST/data/touch/profiles"
+    cp -a "$ROOT/touch/profiles/." "$DEST/data/touch/profiles/"
+fi
 
 install -m 644 "$ROOT/xonotic.apparmor" "$DEST/share/xonotic/xonotic.apparmor"
 
