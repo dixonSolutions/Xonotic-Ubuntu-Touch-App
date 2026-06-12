@@ -36,7 +36,7 @@
 	{
 		return stringwidth_builtin(s, false, theSize);
 	}
-#elifdef MENUQC
+#elif defined(MENUQC)
 	float stringwidth_colors(string s, vector theSize)
 	{
 		return stringwidth(s, true, theSize);

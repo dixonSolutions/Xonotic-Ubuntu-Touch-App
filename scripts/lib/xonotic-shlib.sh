@@ -64,7 +64,8 @@ xonotic_apt_packages() {
         libgmp-dev \
         autoconf \
         automake \
-        libtool
+        libtool \
+        zip
 }
 
 xonotic_has_native_build_deps() {
@@ -182,6 +183,21 @@ xonotic_ensure_game_code() {
     bash "$root/scripts/fetch-sources.sh" code
 }
 
+xonotic_ensure_game_assets() {
+    local root pk3dir
+    root="$(xonotic_root)"
+    pk3dir="$root/engine/data/xonotic-data.pk3dir"
+
+    # Full game requires the main asset directories AND the additional data packs.
+    if [ -d "$pk3dir/gfx" ] && [ -d "$pk3dir/textures" ] && [ -d "$pk3dir/models" ] \
+        && [ -d "$root/engine/data/xonotic-maps.pk3dir" ] \
+        && [ -d "$root/engine/data/xonotic-music.pk3dir" ]; then
+        return 0
+    fi
+    printf 'Game assets missing — fetching full game data (this only runs once)...\n'
+    bash "$root/scripts/fetch-sources.sh" full
+}
+
 xonotic_clickable_build_args() {
     local mode="$1"
     local arch="${XONOTIC_CLICKABLE_ARCH:-}"
@@ -215,7 +231,7 @@ xonotic_compile_engine_only() {
     printf 'Building DarkPlaces for %s...\n' "${ARCH:-host}"
     cd "$darkplaces"
     make clean >/dev/null 2>&1 || true
-    make sdl-release DP_SSE=0 "${MAKEFLAGS:--j$(nproc)}"
+    PATH="/usr/bin:${PATH}" make sdl-release DP_SSE=0 "${MAKEFLAGS:--j$(nproc)}"
     install -m 755 darkplaces-sdl "$out_bin"
     printf 'Built %s (%s)\n' "$out_bin" "$(file -b "$out_bin")"
 }
@@ -229,6 +245,7 @@ xonotic_compile() {
     qcsrc="$root/engine/data/xonotic-data.pk3dir/qcsrc/Makefile"
 
     xonotic_ensure_game_code
+    xonotic_ensure_game_assets
     mkdir -p "$out_dir"
 
     if [ ! -f "$qcsrc" ]; then
@@ -250,14 +267,25 @@ xonotic_compile() {
     make $MAKEFLAGS
 
     cd "$root/engine/gmqcc"
+    # If a pre-built gmqcc exists but won't run on this environment (e.g. GLIBC
+    # mismatch when building inside a Clickable SDK container), clean it so make
+    # recompiles from source rather than skipping the target.
+    if [ -f gmqcc ] && ! ./gmqcc --version >/dev/null 2>&1; then
+        printf 'gmqcc binary incompatible with current environment — rebuilding from source\n'
+        make clean >/dev/null 2>&1 || true
+    fi
     make $MAKEFLAGS gmqcc
 
     cd "$root/engine/data/xonotic-data.pk3dir"
     make QCC="$gmqcc" XON_BUILDSYSTEM=1 QCCFLAGS_WATERMARK="$QCCFLAGS_WATERMARK" $MAKEFLAGS
+    # Ensure menu.dat is rebuilt when menu sources change (make may skip 'all').
+    make QCC="$gmqcc" XON_BUILDSYSTEM=1 QCCFLAGS_WATERMARK="$QCCFLAGS_WATERMARK" -C qcsrc ../menu.dat
 
     cd "$root/engine/darkplaces"
     make clean >/dev/null 2>&1 || true
-    make sdl-release DP_SSE=0 $MAKEFLAGS STRIP=:
+    # The Clickable SDK places a broken sdl2-config at /usr/local/bin that has
+    # prefix=/. — ensure the real /usr/bin/sdl2-config is found first.
+    PATH="/usr/bin:${PATH}" make sdl-release DP_SSE=0 $MAKEFLAGS STRIP=:
     install -m 755 darkplaces-sdl "$out_bin"
 
     printf 'Built %s (%s)\n' "$out_bin" "$(file -b "$out_bin")"

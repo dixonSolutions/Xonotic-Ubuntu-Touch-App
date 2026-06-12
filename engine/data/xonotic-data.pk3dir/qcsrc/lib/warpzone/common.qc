@@ -4,7 +4,7 @@
 
 #ifdef CSQC
 	#include <client/items/items.qh>
-#elifdef SVQC
+#elif defined(SVQC)
 	#include <common/weapons/_all.qh>
 #endif
 

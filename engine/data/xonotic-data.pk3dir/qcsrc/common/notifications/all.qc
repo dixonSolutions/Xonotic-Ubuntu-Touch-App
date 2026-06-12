@@ -2,7 +2,7 @@
 
 #ifdef CSQC
 	#include <client/announcer.qh>
-#elifdef SVQC
+#elif defined(SVQC)
 	#include <common/constants.qh>
 	#include <common/net_linked.qh>
 	#include <common/teams.qh>

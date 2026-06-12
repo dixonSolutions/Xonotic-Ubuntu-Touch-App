@@ -99,13 +99,20 @@ case "$MODE" in
         echo "Assets fetch: textures/models/gfx/sound/… under xonotic-data.pk3dir"
         ;;
     full)
-        if [ ! -d "$ROOT/engine/.git" ]; then
-            echo "Full fetch requires engine/.git (upstream superproject checkout)." >&2
-            echo "Run $0 code without prepare-engine-for-git.sh, or use: $0 assets" >&2
-            exit 1
-        fi
-        echo "Full fetch via ./all update (large — maps, music, all assets)..."
-        ./all update -l best
+        # Fetch all game data packs individually (no superproject required).
+        clone_repo darkplaces "$DARKPLACES_URL" "makefile.inc"
+        clone_repo gmqcc "$GMQCC_URL" "Makefile"
+        clone_repo data/xonotic-data.pk3dir "$DATA_URL" "qcsrc"
+        clone_repo d0_blind_id "$BLIND_ID_URL" "configure.ac"
+        fetch_pk3dir_assets
+        # Additional data packs from the Xonotic release
+        MAPS_URL="${MAPS_URL:-https://gitlab.com/xonotic/xonotic-maps.pk3dir.git}"
+        MUSIC_URL="${MUSIC_URL:-https://gitlab.com/xonotic/xonotic-music.pk3dir.git}"
+        NEXCOMPAT_URL="${NEXCOMPAT_URL:-https://gitlab.com/xonotic/xonotic-nexcompat.pk3dir.git}"
+        clone_repo data/xonotic-maps.pk3dir "$MAPS_URL" "maps"
+        clone_repo data/xonotic-music.pk3dir "$MUSIC_URL" "music"
+        clone_repo data/xonotic-nexcompat.pk3dir "$NEXCOMPAT_URL" "textures"
+        echo "Full fetch complete: all data packs present under engine/data/"
         ;;
     *)
         echo "Usage: $0 [minimal|code|assets|full]" >&2
