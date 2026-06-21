@@ -133,7 +133,7 @@ jobs:
       - name: Prepare release files
         run: |
           mkdir -p release/upload
-          find release -name '*.flatpak' -exec cp -t release/upload {} +
+          find release -type f -name '*.flatpak' -exec cp -t release/upload {} +
           ls -la release/upload/
 
       - name: Remove previous continuous release
