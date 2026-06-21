@@ -21,53 +21,47 @@ env:
   FLATPAK_REMOTE_URL: https://dixonSolutions.github.io/Xonotic-Ubuntu-Touch-App/flatpak
 
 jobs:
-  flatpak-x86_64:
-    name: Flatpak (x86_64)
+  flatpak:
+    name: Flatpak (${{ matrix.arch }})
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/flathub-infra/flatpak-github-actions/freedesktop-24.08:x86_64
+      image: ghcr.io/flathub-infra/flatpak-github-actions:freedesktop-24.08
       options: --privileged
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64, aarch64]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build Flatpak
-        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
-        with:
-          bundle: XonoticTouch-x86_64.flatpak
-          manifest-path: flatpak/io.github.dixonSolutions.XonoticTouch.yml
-          arch: x86_64
-          cache: true
+      - name: Install Docker for QEMU
+        if: matrix.arch != 'x86_64'
+        run: |
+          curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-26.0.0.tgz \
+            --output ./docker.tgz
+          tar xzf docker.tgz
+          mv docker/* /usr/bin
 
-      - name: Upload Flatpak bundle
-        uses: actions/upload-artifact@v4
+      - name: Set up QEMU
+        if: matrix.arch != 'x86_64'
+        uses: docker/setup-qemu-action@v3
         with:
-          name: flatpak-x86_64
-          path: XonoticTouch-x86_64.flatpak
-
-  flatpak-aarch64:
-    name: Flatpak (aarch64)
-    runs-on: ubuntu-24.04-arm
-    container:
-      image: ghcr.io/flathub-infra/flatpak-github-actions/freedesktop-24.08:aarch64
-      options: --privileged
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+          platforms: arm64
 
       - name: Build Flatpak
         uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
-          bundle: XonoticTouch-aarch64.flatpak
+          bundle: XonoticTouch-${{ matrix.arch }}.flatpak
           manifest-path: flatpak/io.github.dixonSolutions.XonoticTouch.yml
-          arch: aarch64
-          cache: true
+          arch: ${{ matrix.arch }}
+          cache-key: flatpak-${{ matrix.arch }}
 
       - name: Upload Flatpak bundle
         uses: actions/upload-artifact@v4
         with:
-          name: flatpak-aarch64
-          path: XonoticTouch-aarch64.flatpak
+          name: flatpak-${{ matrix.arch }}
+          path: XonoticTouch-${{ matrix.arch }}.flatpak
 
   click-arm64:
     name: Click (arm64)
@@ -77,33 +71,20 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build Click package
-        run: |
-          docker run --rm \
-            -v "${GITHUB_WORKSPACE}:/mnt" \
-            -w /mnt \
-            -e XONOTIC_PACKAGE_BUILD=1 \
-            clickable/ci-image \
-            clickable build --arch arm64
-
-      - name: Find Click package
-        id: click
-        run: |
-          CLICK_FILE="$(find . -name '*.click' -not -path './.git/*' | head -1)"
-          if [ -z "$CLICK_FILE" ]; then
-            echo "No .click file found" >&2
-            exit 1
-          fi
-          echo "path=$CLICK_FILE" >> "$GITHUB_OUTPUT"
+        uses: tuxecure/clickable@v2
+        with:
+          image: clickable/ci-20.04-arm64
+          run: clickable build --arch arm64 --skip-review
 
       - name: Upload Click package
         uses: actions/upload-artifact@v4
         with:
           name: click-arm64
-          path: ${{ steps.click.outputs.path }}
+          path: build/*/app/*.click
 
   publish-flatpak-remote:
     name: Publish Flatpak remote
-    needs: [flatpak-x86_64, flatpak-aarch64]
+    needs: [flatpak]
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -155,7 +136,7 @@ jobs:
   release:
     name: GitHub Release
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [flatpak-x86_64, flatpak-aarch64, click-arm64]
+    needs: [flatpak, click-arm64]
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
