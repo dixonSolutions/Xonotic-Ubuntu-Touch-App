@@ -384,14 +384,18 @@ xonotic_compile() {
     make $MAKEFLAGS CPPFLAGS="$d0_cppflags" CFLAGS="$d0_cflags" LDFLAGS="$d0_ldflags" LIBS="$gmp_libs"
 
     cd "$root/engine/gmqcc"
-    # If a pre-built gmqcc exists but won't run on this environment (e.g. GLIBC
-    # mismatch when building inside a Clickable SDK container), clean it so make
-    # recompiles from source rather than skipping the target.
+    # gmqcc must run on the build host to compile QuakeC (arch-neutral output).
     if [ -f gmqcc ] && ! ./gmqcc --version >/dev/null 2>&1; then
         printf 'gmqcc binary incompatible with current environment — rebuilding from source\n'
         make clean >/dev/null 2>&1 || true
     fi
-    make $MAKEFLAGS STRIP=: gmqcc
+    if [ -n "${ARCH_TRIPLET:-}" ]; then
+        make clean >/dev/null 2>&1 || true
+        CC="${HOST_CC:-gcc}" CXX="${HOST_CXX:-g++}" \
+            make $MAKEFLAGS STRIP=: gmqcc
+    else
+        make $MAKEFLAGS STRIP=: gmqcc
+    fi
 
     cd "$root/engine/data/xonotic-data.pk3dir"
     make QCC="$gmqcc" XON_BUILDSYSTEM=1 QCCFLAGS_WATERMARK="$QCCFLAGS_WATERMARK" $MAKEFLAGS
