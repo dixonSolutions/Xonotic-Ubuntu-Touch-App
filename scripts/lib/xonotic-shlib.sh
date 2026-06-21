@@ -398,7 +398,7 @@ xonotic_compile() {
     fi
 
     cd "$root/engine/data/xonotic-data.pk3dir"
-    make QCC="$gmqcc" XON_BUILDSYSTEM=1 QCCFLAGS_WATERMARK="$QCCFLAGS_WATERMARK" $MAKEFLAGS
+    make QCC="$gmqcc" XON_BUILDSYSTEM=1 QCCFLAGS_WATERMARK="$QCCFLAGS_WATERMARK" $MAKEFLAGS qc
     # Ensure menu.dat is rebuilt when menu sources change (make may skip 'all').
     make QCC="$gmqcc" XON_BUILDSYSTEM=1 QCCFLAGS_WATERMARK="$QCCFLAGS_WATERMARK" -C qcsrc ../menu.dat
 
